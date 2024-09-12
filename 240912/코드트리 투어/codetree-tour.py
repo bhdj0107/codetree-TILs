@@ -4,7 +4,6 @@ import math
 # v 도시와 u 도시는 w 길이의 간선으로 연결됨
 
 Q = int(input())
-querys = [map(int, input().split()) for _ in range(Q)]
 
 
 def daijkstra(connection, startPt):
@@ -40,8 +39,8 @@ def sellablePackage(package, dist):
 package = {}
 prevCmd = -100
 
-for t, query in enumerate(querys):
-    query = list(query)
+for t in range(Q):
+    query = list(map(int, input().split()))
     if query[0] == 100:
         prevCmd = 100
         N, M = query[1:3]
