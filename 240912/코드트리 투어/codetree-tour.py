@@ -29,6 +29,7 @@ def daijkstra(connection, startPt):
             for i in range(len(connection)):
                 dist[i] = min(dist[i], minDist + connection[minPos][i])
     return dist
+
 def sellablePackage(package, dist):
     ret = []
     for package_id, (rev, dst) in package.items():
@@ -37,12 +38,12 @@ def sellablePackage(package, dist):
     return ret
 
 package = {}
-lastUpdated = -1
-lastCalculated = -1
+prevCmd = -100
 
 for t, query in enumerate(querys):
     query = list(query)
     if query[0] == 100:
+        prevCmd = 100
         N, M = query[1:3]
         connection = [[math.inf for _ in range(N)] for _ in range(N)]
         for i in range(N): connection[i][i] = 0
@@ -53,20 +54,20 @@ for t, query in enumerate(querys):
         dist = daijkstra(connection, 0)
         
     elif query[0] == 200:
+        prevCmd = 200
         package_id, rev, dst = query[1:]
         package[package_id] = (rev, dst)
-        lastUpdated = t
 
     elif query[0] == 300:
+        prevCmd = 300
         package_id = query[1]
         if package.get(package_id):
             del package[package_id]
-            lastUpdated = t
     
     elif query[0] == 400:
-        if lastUpdated > lastCalculated:
+        if prevCmd != 400:
             sellable = sellablePackage(package, dist)
-            lastCalculated = t
+        prevCmd = 400
         if len(sellable):
             pid = sellable.pop()[0]
             print(pid)
@@ -77,4 +78,3 @@ for t, query in enumerate(querys):
     elif query[0] == 500:
         newSrc = query[1]
         dist = daijkstra(connection, newSrc)
-        lastUpdated = t
