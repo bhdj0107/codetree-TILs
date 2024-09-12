@@ -29,9 +29,18 @@ def daijkstra(connection, startPt):
             for i in range(len(connection)):
                 dist[i] = min(dist[i], minDist + connection[minPos][i])
     return dist
+def sellablePackage(package, dist):
+    ret = []
+    for package_id, (rev, dst) in package.items():
+        if rev - dist[dst] >= 0: ret.append((package_id, rev - dist[dst]))
+    ret.sort(key=lambda x: (-x[1], x[0]), reverse=True)
+    return ret
 
 package = {}
-for query in querys:
+lastUpdated = -1
+lastCalculated = -1
+
+for t, query in enumerate(querys):
     query = list(query)
     if query[0] == 100:
         N, M = query[1:3]
@@ -46,27 +55,26 @@ for query in querys:
     elif query[0] == 200:
         package_id, rev, dst = query[1:]
         package[package_id] = (rev, dst)
+        lastUpdated = t
 
     elif query[0] == 300:
         package_id = query[1]
-        if package.get(package_id): del package[package_id]
+        if package.get(package_id):
+            del package[package_id]
+            lastUpdated = t
     
     elif query[0] == 400:
-        bestPackage = -1
-        bestRevCost = -math.inf
-        for package_id, (rev, dst) in package.items():
-            revCost = rev - dist[dst]
-            if bestRevCost < revCost:
-                bestPackage = package_id
-                bestRevCost = revCost
-                
-            elif bestRevCost == revCost and bestPackage != -1:
-                bestPackage = min(bestPackage, package_id)
-        if bestRevCost >= 0:
-            print(bestPackage)
-            if bestPackage != -1: del package[bestPackage]
+        if lastUpdated > lastCalculated:
+            sellable = sellablePackage(package, dist)
+            lastCalculated = t
+        if len(sellable):
+            pid = sellable.pop()[0]
+            print(pid)
+            del package[pid]
+            
         else: print(-1)
-    
+        
     elif query[0] == 500:
         newSrc = query[1]
         dist = daijkstra(connection, newSrc)
+        lastUpdated = t
