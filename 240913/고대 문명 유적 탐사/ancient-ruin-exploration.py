@@ -55,6 +55,34 @@ class RotationableField:
                 return True
         return False
 
+def getCollectableCntandBlockPoses(rtField: RotationableField):
+    visited = [[False for _ in range(5)] for _ in range(5)]
+    blockPoses = []
+    for i in range(5):
+        for j in range(5):
+            if visited[i][j]: continue
+            else:
+                q = deque()
+                q.append((i, j))
+                blockNum = rtField.getitem((i, j))
+                blockSize = 0
+                tmpBlockPoses = []
+                while q:
+                    now = q.popleft()
+                    if visited[now[0]][now[1]]: continue
+                    else:
+                        visited[now[0]][now[1]] = True
+                        blockSize += 1
+                        tmpBlockPoses.append(now)
+                        for d in range(4):
+                            ny, nx = now[0] + delta[d][0], now[1] + delta[d][1]
+                            if not (0 <= ny < 5 and 0 <= nx < 5): continue
+                            if rtField.getitem((ny, nx)) == blockNum: q.append((ny, nx))
+                if blockSize >= 3:
+                    blockPoses.extend(tmpBlockPoses)
+    return len(blockPoses), sorted(blockPoses, key=lambda x: (x[1], -x[0]))
+
+
 for _ in range(K):
     rtField = RotationableField(field)
     score = 0
@@ -71,37 +99,12 @@ for _ in range(K):
             for i in range(3):
                 rtField.setLeftTop((i, j))
                 rtField.setRotateDegree(k)
-
-                removeCnt = 0
-                removeBlocks = []
-                visited = [[False for _ in range(5)] for _ in range(5)]
-                for ii in range(5):
-                    for jj in range(5):
-                        if visited[ii][jj]: continue
-                        else:
-                            q = deque()
-                            blockSize = 0
-                            q.append((ii, jj))
-                            blockNum = rtField.getitem((ii, jj))
-                            while q:
-                                now = q.popleft()
-                                if visited[now[0]][now[1]]: continue
-                                else:
-                                    visited[now[0]][now[1]] = True
-                                    blockSize += 1
-                                    for d in range(4):
-                                        ny, nx = now[0] + delta[d][0], now[1] + delta[d][1]
-                                        if not (0 <= ny < 5 and 0 <= nx < 5): continue
-                                        if rtField.getitem((ny, nx)) == blockNum:
-                                            q.append((ny, nx))
-                            if blockSize >= 3:
-                                removeCnt += blockSize
-                                removeBlocks.append((ii, jj))
-
+                removeCnt, blocks = getCollectableCntandBlockPoses(rtField)
                 if maxRemoveCnt < removeCnt:
-                    maxRemoveStatus = (i, j, k)
                     maxRemoveCnt = removeCnt
-                    maxRemoveBlocks = removeBlocks
+                    maxRemoveStatus = (i, j, k)
+                    maxRemoveBlocks = blocks
+
 
     if maxRemoveCnt == 0: break
     # # 최선의 선택지를 기준으로 유물 먹기
@@ -109,93 +112,23 @@ for _ in range(K):
     rtField.setRotateDegree(maxRemoveStatus[2])
     score += maxRemoveCnt
 
-    # 지워야 할 블록 표시
-    isCollectable = [[False for _ in range(5)] for _ in range(5)]
-    visited = set()
-    for blockStart in maxRemoveBlocks:
-        y, x = blockStart
-        blockNum = rtField.getitem((y, x))
-        q = deque()
-        q.append((y, x))
-        while q:
-            now = q.popleft()
-            if now in visited: continue
-            else:
-                visited.add(now)
-                isCollectable[now[0]][now[1]] = True
-                for d in range(4):
-                    ny, nx = now[0] + delta[d][0], now[1] + delta[d][1]
-                    if not (0 <= ny < 5 and 0 <= nx < 5): continue
-                    if rtField.getitem((ny, nx)) == blockNum: q.append((ny, nx))
-    
-    # 블록 지우기 + 채우기
-    for i in range(5):
-        for j in range(5):
-            ii, jj = 4 - j, i
-            if isCollectable[ii][jj]:
-                rtField.setitem((ii, jj), walls.popleft())
+    # 블록 지우고 채우기
+    for ii, jj in maxRemoveBlocks:
+        rtField.setitem((ii, jj), walls.popleft())
 
     # 연쇄 획득
     # 현재 필드 상태에서 추가적으로 먹을 수 있는 칸 먹고 채우기, 더 이상 못 먹을 때 까지 채우기
-
     while True:
         # 먹을 수 있는 칸 체크
-        removeCnt = 0
-        removeBlocks = []
-        visited = [[False for _ in range(5)] for _ in range(5)]
-        for i in range(5):
-            for j in range(5):
-                if visited[i][j]: continue
-                else:
-                    q = deque()
-                    q.append((i, j))
-                    blockNum = rtField.getitem((i, j))
-                    blockSize = 0
-                    while q:
-                        now = q.popleft()
-                        if visited[now[0]][now[1]]: continue
-                        else:
-                            visited[now[0]][now[1]] = True
-                            blockSize += 1
-                            for d in range(4):
-                                ny, nx = now[0] + delta[d][0], now[1] + delta[d][1]
-                                if not (0 <= ny < 5 and 0 <= nx < 5): continue
-                                if rtField.getitem((ny, nx)) == blockNum: q.append((ny, nx))
-                    if blockSize >= 3:
-                        removeCnt += blockSize
-                        removeBlocks.append((i, j))
-        
+        removeCnt, blocks = getCollectableCntandBlockPoses(rtField)
         # 더 먹을 칸이 있다면
         if removeCnt > 0:
             score += removeCnt
-            # 지워야 할 블록 표시
-            isCollectable = [[False for _ in range(5)] for _ in range(5)]
-            visited = set()
-            for blockStart in removeBlocks:
-                y, x = blockStart
-                blockNum = rtField.getitem((y, x))
-                q = deque()
-                q.append((y, x))
-                while q:
-                    now = q.popleft()
-                    if now in visited:
-                        continue
-                    else:
-                        visited.add(now)
-                        isCollectable[now[0]][now[1]] = True
-                        for d in range(4):
-                            ny, nx = now[0] + delta[d][0], now[1] + delta[d][1]
-                            if not (0 <= ny < 5 and 0 <= nx < 5): continue
-                            if rtField.getitem((ny, nx)) == blockNum: q.append((ny, nx))
-
-            # 블록 지우기 + 채우기
-            for i in range(5):
-                for j in range(5):
-                    ii, jj = 4 - j, i
-                    if isCollectable[ii][jj]:
-                        rtField.setitem((ii, jj), walls.popleft())
+            for ii, jj in blocks:
+                rtField.setitem((ii, jj), walls.popleft())
         else: break
 
     ans.append(score)
     field = rtField.rotatedField()
+
 print(" ".join(list(map(str, ans))))
