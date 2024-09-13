@@ -1,10 +1,25 @@
 # 240913 1327 start
+import sys
 from collections import deque
+input = sys.stdin.readline
 K, M = map(int, input().split())
 field = [list(map(int, input().split())) for _ in range(5)]
-walls = deque(list(map(int, input().split())))
+
+class Walls:
+    def __init__(self, wallList):
+        self.walls = wallList
+        self.startIdx = 0
+
+    def popleft(self):
+        self.startIdx += 1
+        return self.walls[self.startIdx - 1]
+
+walls = Walls(list(map(int, input().split())))
 delta = ((0, 1), (1, 0), (-1, 0), (0, -1))
 ans = []
+
+
+
 class RotationableField:
     def __init__(self, field):
         self.field = field
@@ -80,8 +95,7 @@ def getCollectableCntandBlockPoses(rtField: RotationableField):
                             if rtField.getitem((ny, nx)) == blockNum: q.append((ny, nx))
                 if blockSize >= 3:
                     blockPoses.extend(tmpBlockPoses)
-    return len(blockPoses), sorted(blockPoses, key=lambda x: (x[1], -x[0]))
-
+    return len(blockPoses), blockPoses
 
 for _ in range(K):
     rtField = RotationableField(field)
@@ -113,7 +127,7 @@ for _ in range(K):
     score += maxRemoveCnt
 
     # 블록 지우고 채우기
-    for ii, jj in maxRemoveBlocks:
+    for ii, jj in sorted(maxRemoveBlocks, key=lambda x: (x[1], -x[0])):
         rtField.setitem((ii, jj), walls.popleft())
 
     # 연쇄 획득
@@ -124,7 +138,7 @@ for _ in range(K):
         # 더 먹을 칸이 있다면
         if removeCnt > 0:
             score += removeCnt
-            for ii, jj in blocks:
+            for ii, jj in sorted(blocks, key=lambda x: (x[1], -x[0])):
                 rtField.setitem((ii, jj), walls.popleft())
         else: break
 
